@@ -1,0 +1,328 @@
+<!-- Tambahkan script ini sebelum closing </body> tag, setelah PWA Manager script -->
+<script>
+  // ========================================
+  // IndexedDB Manager - Integrated with PWA
+  // ========================================
+  window.IndexedDBManager = {
+    db: null,
+    DB_NAME: 'DicodingStoryDB',
+    DB_VERSION: 1,
+    STORE_NAME: 'stories',
+    
+    // Initialize IndexedDB
+    async init() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+        
+        request.onerror = () => {
+          console.error('❌ IndexedDB failed to open');
+          reject(request.error);
+        };
+        
+        request.onsuccess = () => {
+          this.db = request.result;
+          console.log('✅ IndexedDB initialized');
+          resolve(this.db);
+        };
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          
+          // Create stories store
+          if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+            const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
+            store.createIndex('createdAt', 'createdAt');
+            console.log('📦 IndexedDB store created');
+          }
+        };
+      });
+    },
+
+    // 1. MENYIMPAN data
+    async saveStories(stories) {
+      if (!this.db) {
+        console.warn('Database not initialized');
+        return;
+      }
+
+      try {
+        const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        
+        // Clear existing data first
+        await this.clearStore(store);
+        
+        // Add all stories
+        for (const story of stories) {
+          await this.addToStore(store, story);
+        }
+        
+        console.log(`💾 Saved ${stories.length} stories to IndexedDB`);
+        return true;
+      } catch (error) {
+        console.error('❌ Failed to save stories:', error);
+        return false;
+      }
+    },
+
+    // 2. MENAMPILKAN data
+    async getAllStories() {
+      if (!this.db) {
+        console.warn('Database not initialized');
+        return [];
+      }
+
+      try {
+        const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+        const store = transaction.objectStore(this.STORE_NAME);
+        
+        return new Promise((resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => {
+            console.log(`📖 Retrieved ${request.result.length} stories from IndexedDB`);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('❌ Failed to get stories:', error);
+        return [];
+      }
+    },
+
+    // 3. MENGHAPUS data
+    async clearAll() {
+      if (!this.db) {
+        console.warn('Database not initialized');
+        return false;
+      }
+
+      try {
+        const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        
+        return new Promise((resolve, reject) => {
+          const request = store.clear();
+          request.onsuccess = () => {
+            console.log('🗑️ All stories cleared from IndexedDB');
+            resolve(true);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('❌ Failed to clear stories:', error);
+        return false;
+      }
+    },
+
+    // Helper methods
+    async clearStore(store) {
+      return new Promise((resolve, reject) => {
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    },
+
+    async addToStore(store, data) {
+      return new Promise((resolve, reject) => {
+        const request = store.add(data);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    },
+
+    async isDataAvailable() {
+      const stories = await this.getAllStories();
+      return stories && stories.length > 0;
+    }
+  };
+
+  // ========================================
+  // Enhanced PWA Manager with IndexedDB
+  // ========================================
+  
+  // Extend existing PWA Manager
+  const originalInit = window.PWAManager.init;
+  window.PWAManager.init = async function() {
+    console.log('🚀 Initializing Enhanced PWA with IndexedDB...');
+    
+    try {
+      // Initialize IndexedDB first
+      await window.IndexedDBManager.init();
+      
+      // Then initialize original PWA features
+      await originalInit.call(this);
+      
+      // Add IndexedDB status to demo
+      this.indexedDBReady = true;
+      
+      console.log('✅ Enhanced PWA with IndexedDB initialized');
+    } catch (error) {
+      console.error('❌ Error initializing Enhanced PWA:', error);
+    }
+  };
+
+  // Enhanced test features
+  const originalTestFeatures = window.PWAManager.testFeatures;
+  window.PWAManager.testFeatures = async function() {
+    // Call original test
+    originalTestFeatures.call(this);
+    
+    // Add IndexedDB tests
+    const results = document.getElementById('pwa-test-results');
+    if (results && window.IndexedDBManager.db) {
+      const currentHTML = results.innerHTML;
+      
+      // Test IndexedDB
+      let indexedDBStatus = '';
+      if ('indexedDB' in window) {
+        const hasData = await window.IndexedDBManager.isDataAvailable();
+        indexedDBStatus = `<p>✅ IndexedDB: Initialized ${hasData ? '(Has Data)' : '(Empty)'}</p>`;
+      } else {
+        indexedDBStatus = '<p>❌ IndexedDB: Not supported</p>';
+      }
+      
+      // Insert IndexedDB status after Service Worker status
+      const updatedHTML = currentHTML.replace(
+        'Service Worker: Registered ✅</p>',
+        `Service Worker: Registered ✅</p>${indexedDBStatus}`
+      );
+      
+      results.innerHTML = updatedHTML;
+      
+      // Add IndexedDB test buttons
+      const testSection = document.createElement('div');
+      testSection.innerHTML = `
+        <div style="margin-top: 1rem; padding: 1rem; background: #fff3e0; border-radius: 8px;">
+          <h4>🗄️ IndexedDB Test:</h4>
+          <button onclick="PWAManager.testIndexedDB()" style="
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.25rem;
+          ">Test Save/Load</button>
+          
+          <button onclick="PWAManager.clearIndexedDB()" style="
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.25rem;
+          ">Clear Data</button>
+          
+          <div id="indexeddb-test-result" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+        </div>
+      `;
+      
+      results.appendChild(testSection);
+    }
+  };
+
+  // IndexedDB test methods
+  window.PWAManager.testIndexedDB = async function() {
+    const resultDiv = document.getElementById('indexeddb-test-result');
+    if (!resultDiv) return;
+    
+    try {
+      // Test data
+      const testStories = [
+        {
+          id: 'test-1',
+          name: 'Test Story 1',
+          description: 'This is a test story for IndexedDB',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'test-2',
+          name: 'Test Story 2', 
+          description: 'Another test story',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      resultDiv.innerHTML = '⏳ Testing IndexedDB...';
+      
+      // Save test data
+      const saveResult = await window.IndexedDBManager.saveStories(testStories);
+      if (!saveResult) {
+        throw new Error('Failed to save test data');
+      }
+      
+      // Load test data
+      const loadedStories = await window.IndexedDBManager.getAllStories();
+      
+      if (loadedStories.length === testStories.length) {
+        resultDiv.innerHTML = `✅ Success! Saved and loaded ${loadedStories.length} test stories.`;
+      } else {
+        resultDiv.innerHTML = `⚠️ Partial success. Saved ${testStories.length}, loaded ${loadedStories.length}`;
+      }
+      
+    } catch (error) {
+      resultDiv.innerHTML = `❌ Test failed: ${error.message}`;
+      console.error('IndexedDB test failed:', error);
+    }
+  };
+
+  window.PWAManager.clearIndexedDB = async function() {
+    const resultDiv = document.getElementById('indexeddb-test-result');
+    if (!resultDiv) return;
+    
+    try {
+      resultDiv.innerHTML = '⏳ Clearing IndexedDB...';
+      
+      const clearResult = await window.IndexedDBManager.clearAll();
+      
+      if (clearResult) {
+        resultDiv.innerHTML = '✅ IndexedDB cleared successfully!';
+      } else {
+        resultDiv.innerHTML = '❌ Failed to clear IndexedDB';
+      }
+      
+    } catch (error) {
+      resultDiv.innerHTML = `❌ Clear failed: ${error.message}`;
+      console.error('IndexedDB clear failed:', error);
+    }
+  };
+
+  // ========================================
+  // Global IndexedDB Helper for App Integration
+  // ========================================
+  window.StoryOfflineManager = {
+    // Easy method for your presenters to use
+    async cacheStories(stories) {
+      if (!window.IndexedDBManager.db) {
+        await window.IndexedDBManager.init();
+      }
+      return await window.IndexedDBManager.saveStories(stories);
+    },
+
+    async getOfflineStories() {
+      if (!window.IndexedDBManager.db) {
+        await window.IndexedDBManager.init();
+      }
+      return await window.IndexedDBManager.getAllStories();
+    },
+
+    async clearOfflineStories() {
+      if (!window.IndexedDBManager.db) {
+        await window.IndexedDBManager.init();
+      }
+      return await window.IndexedDBManager.clearAll();
+    },
+
+    async hasOfflineData() {
+      if (!window.IndexedDBManager.db) {
+        await window.IndexedDBManager.init();
+      }
+      return await window.IndexedDBManager.isDataAvailable();
+    }
+  };
+
+  console.log('📦 IndexedDB integration loaded');
+</script>

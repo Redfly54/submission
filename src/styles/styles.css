@@ -1,0 +1,205 @@
+/* ————————————————————————————
+   Variables & Reset
+   ———————————————————————————— */
+:root {
+  /* Palet warna (contoh dari colorhunt.co) */
+  --clr-primary:rgb(94, 158, 226);
+  --clr-secondary: #556270;
+  --clr-bg:        #F7FFF7;
+  --clr-text:      #303841;
+  --spacing:       1rem;
+  --radius:        0.5rem;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.6;
+  padding-bottom: var(--spacing);
+}
+
+/* ————————————————————————————
+   Skip Link
+   ———————————————————————————— */
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 12rem;
+  background: var(--clr-secondary);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: top 0.3s;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ————————————————————————————
+   Layout Header & Nav
+   ———————————————————————————— */
+header {
+  background: var(--clr-primary);
+  color: #fff;
+  padding: var(--spacing);
+}
+header h1 {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+nav {
+  margin-top: 0.5rem;
+}
+nav a {
+  color: #fff;
+  text-decoration: none;
+  margin-right: var(--spacing);
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+nav a:hover {
+  opacity: 0.8;
+}
+
+/* ————————————————————————————
+   Main Content & Grid
+   ———————————————————————————— */
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Stories list grid */
+.stories-grid {
+  display: grid;
+  gap: var(--spacing);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* Each story item */
+.story-item {
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+.story-item img {
+  width: 100%;
+  object-fit: cover;
+  height: 160px;
+}
+.story-item h4 {
+  margin: 0.5rem 1rem;
+  font-size: 1.1rem;
+}
+.story-item p {
+  flex-grow: 1;
+  margin: 0 1rem 1rem;
+  font-size: 0.95rem;
+}
+.story-item time {
+  display: block;
+  margin: 0 1rem 1rem;
+  font-size: 0.85rem;
+  color: var(--clr-secondary);
+}
+
+/* ————————————————————————————
+   Forms & Buttons
+   ———————————————————————————— */
+form {
+  background: #fff;
+  padding: var(--spacing);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: var(--spacing);
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--clr-secondary);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+form button:hover {
+  background: #3e4d5a;
+}
+
+/* Capture & Map sections */
+#video, #canvas {
+  border: 2px dashed var(--clr-secondary);
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing);
+}
+#map-add, #map-list, #map-detail {
+  border: 2px solid var(--clr-secondary);
+  border-radius: var(--radius);
+}
+
+/* Back button */
+#backBtn {
+  background: transparent;
+  border: none;
+  color: var(--clr-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: var(--spacing);
+}
+#backBtn:hover {
+  text-decoration: underline;
+}
+
+.skip-to-content {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  color: red;
+}
+
+.skip-to-content:focus {
+  position: unset !important;
+}
+
+/* ————————————————————————————
+   Responsive tweaks
+   ———————————————————————————— */
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.25rem;
+  }
+  .story-item img {
+    height: 120px;
+  }
+}
