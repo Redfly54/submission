@@ -1,5 +1,3 @@
-// scripts/utils/indexedDB.js
-// Simple wrapper that uses the global IndexedDB manager from index.html
 
 const indexedDB = {
   async init() {

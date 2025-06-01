@@ -1,3 +1,5 @@
 MAPTILER_API_KEY=viducjwI0RXhDYln8vOz
 APP_URL=<url_aplikasi>
 MAP_SERVICE_API_KEY=<api_key>
+
+URL = https://redfly54.github.io/submission/
