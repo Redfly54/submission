@@ -2,20 +2,23 @@
 // PWA INTEGRATION - Add to top of existing app.js
 // ========================================
 
-// PWA Navigation Helper (optional enhancement)
+// PWA Navigation Helper (fixed untuk story_token)
 const PWANavigationHelper = {
-  // Update navigation based on auth status (optional)
+  // Update navigation based on auth status
   updateNavigation() {
     const nav = document.getElementById('main-nav');
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('story_token');
+    
+    console.log('Updating navigation, token:', token ? 'exists' : 'not found');
     
     if (token && nav) {
       // User is logged in - show relevant nav
       nav.innerHTML = `
         <a href="#/stories">All Stories</a> |
         <a href="#/add">Add Story</a> |
-        <a href="#/logout" onclick="PWANavigationHelper.logout()">Logout</a>
+        <a href="#" onclick="PWANavigationHelper.logout(); return false;">Logout</a>
       `;
+      console.log('✅ Navigation updated for authenticated user');
     } else if (nav) {
       // User not logged in - show login/register
       nav.innerHTML = `
@@ -23,20 +26,36 @@ const PWANavigationHelper = {
         <a href="#/register">Register</a> |
         <a href="#/stories">All Stories</a>
       `;
+      console.log('✅ Navigation updated for guest user');
     }
   },
   
   // Handle logout
   logout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userData');
+    // Clear story_token (sesuai dengan LoginModel)
+    localStorage.removeItem('story_token');
+    localStorage.removeItem('userData'); // jika ada data user tambahan
+    
+    // Update navigation
     this.updateNavigation();
+    
+    // Redirect to login
     window.location.hash = '/login';
+    
+    // Optional: Show logout message
+    console.log('✅ Logged out successfully');
+    
+    // Show success message
+    if (window.PWAIntegration) {
+      window.PWAIntegration.showSuccess('Berhasil logout');
+    }
+    
+    return false; // Prevent default link behavior
   }
 };
 
 // ========================================
-// YOUR EXISTING APP.JS CODE (unchanged)
+// YOUR EXISTING APP.JS CODE (enhanced)
 // ========================================
 
 import Model from './model.js';
@@ -68,15 +87,22 @@ function router() {
   console.log('Router:', { path, id });
 
   // ========================================
-  // PWA ENHANCEMENT: Optional auth check
+  // PWA ENHANCEMENT: Improved auth check
   // ========================================
-  const authRequired = ['/stories', '/stories/:id', '/add'];
-  if (authRequired.some(r => r.split('/:')[0] === path) && !Model.token) {
-    console.log('Auth required, redirecting to login');
+  const authRequired = ['/add']; // Only /add requires auth, stories can be viewed publicly
+  const token = localStorage.getItem('story_token');
+  
+  if (authRequired.includes(path) && !token) {
+    console.log('Auth required for', path, ', redirecting to login');
+    
+    // Store intended destination
+    localStorage.setItem('redirectAfterLogin', location.hash);
+    
     // Optional: Show login required message
     if (window.PWAManager) {
-      // Could show a PWA-style notification here
+      console.log('⚠️ Login required to access this page');
     }
+    
     return location.hash = '/login';
   }
 
@@ -86,21 +112,33 @@ function router() {
     }
     return r === path;
   });
+  
   console.log('  matched route:', route);
 
   if (route) {
     // ========================================
     // PWA ENHANCEMENT: Update navigation after route
     // ========================================
-    routes[route](id);
-    
-    // Optional: Update PWA navigation
-    setTimeout(() => {
-      PWANavigationHelper.updateNavigation();
-    }, 100);
+    try {
+      routes[route](id);
+      
+      // Update PWA navigation after a short delay
+      setTimeout(() => {
+        PWANavigationHelper.updateNavigation();
+      }, 100);
+      
+    } catch (error) {
+      console.error('❌ Error loading route:', error);
+      
+      // Fallback to stories page
+      if (path !== '/stories') {
+        console.log('Falling back to stories page...');
+        location.hash = '/stories';
+      }
+    }
     
   } else {
-    console.warn('Route not found, redirect to /stories');
+    console.warn('Route not found:', path, ', redirect to /stories');
     location.hash = '/stories';
   }
 }
@@ -122,27 +160,37 @@ window.addEventListener('hashchange', navigate);
 window.addEventListener('load', navigate);
 
 // ========================================
-// PWA ENHANCEMENTS (optional additions)
+// PWA ENHANCEMENTS (improved)
 // ========================================
 
-// Enhanced Model for PWA (optional)
-if (Model) {
+// Enhanced Model for PWA (sesuai dengan LoginModel)
+if (Model && typeof Model.login === 'function') {
   const originalLogin = Model.login;
   Model.login = async function(...args) {
     const result = await originalLogin.apply(this, args);
+    
     // Update navigation after successful login
-    if (result && !result.error) {
+    if (result && result.token) {
+      console.log('✅ Login successful, updating navigation...');
       setTimeout(() => {
         PWANavigationHelper.updateNavigation();
+        
+        // Redirect to intended page if stored
+        const redirectTo = localStorage.getItem('redirectAfterLogin');
+        if (redirectTo) {
+          localStorage.removeItem('redirectAfterLogin');
+          window.location.hash = redirectTo;
+        }
       }, 100);
     }
+    
     return result;
   };
 }
 
 // PWA Integration Helper
 window.PWAIntegration = {
-  // Show loading during operations (optional)
+  // Show loading during operations
   showLoading() {
     const loading = document.getElementById('pwa-loading');
     if (loading) loading.classList.add('show');
@@ -153,20 +201,85 @@ window.PWAIntegration = {
     if (loading) loading.classList.remove('show');
   },
   
-  // Show success message (optional)
+  // Show success message
   showSuccess(message) {
-    // Could integrate with existing notification system
     console.log('✅ Success:', message);
+    
+    // Could create a toast notification here
+    this.showToast(message, 'success');
   },
   
-  // Show error message (optional)
+  // Show error message
   showError(message) {
-    // Could integrate with existing error handling
     console.error('❌ Error:', message);
+    
+    // Could create a toast notification here
+    this.showToast(message, 'error');
+  },
+  
+  // Simple toast notification system
+  showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `pwa-toast pwa-toast-${type}`;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1003;
+      max-width: 300px;
+      animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideIn 0.3s ease reverse';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 3000);
   }
 };
 
-// Make PWA helpers available globally (optional)
+// Make PWA helpers available globally
 window.PWANavigationHelper = PWANavigationHelper;
+
+// Create global updateNavigation function for backward compatibility
+window.updateNavigation = function() {
+  console.log('🔄 Global updateNavigation called');
+  PWANavigationHelper.updateNavigation();
+};
+
+// Initialize navigation on load
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 DOM loaded, initializing navigation...');
+  PWANavigationHelper.updateNavigation();
+});
+
+// Also update navigation when hash changes
+window.addEventListener('hashchange', () => {
+  setTimeout(() => {
+    PWANavigationHelper.updateNavigation();
+  }, 50);
+});
 
 console.log('✅ Dicoding Story app loaded with PWA enhancements');
