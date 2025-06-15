@@ -1,0 +1,596 @@
+/* PWA Enhanced Styles - pwa-styles.css */
+
+/* ==========================================
+   CONNECTION STATUS INDICATOR
+   ========================================== */
+.connection-status {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  z-index: 1004;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.connection-status.online {
+  background: rgba(76, 175, 80, 0.9);
+}
+
+.connection-status.offline {
+  background: rgba(244, 67, 54, 0.9);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ==========================================
+   TOAST NOTIFICATION SYSTEM
+   ========================================== */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 300px;
+  max-width: 400px;
+  background: #333;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1005;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  gap: 0.75rem;
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Toast Types */
+.toast-success {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+}
+
+.toast-error {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+.toast-warning {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+}
+
+.toast-info {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+}
+
+/* ==========================================
+   LOADING ENHANCEMENTS
+   ========================================== */
+.pwa-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 2000;
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+.pwa-loading.show {
+  display: flex;
+}
+
+.pwa-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+.pwa-loading p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* ==========================================
+   OFFLINE INDICATOR ENHANCEMENTS
+   ========================================== */
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #ff5722, #d84315);
+  color: white;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1001;
+  display: none;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+  font-family: 'Inter', sans-serif;
+}
+
+.offline-indicator.show {
+  display: block;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   ACTION BUTTONS ENHANCEMENT
+   ========================================== */
+.install-prompt,
+.pwa-demo-button {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  z-index: 1000;
+  border-radius: 50px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.install-prompt {
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #1976d2, #0d47a1);
+  color: white;
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.install-prompt:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(25, 118, 210, 0.4);
+}
+
+.install-prompt.show {
+  display: flex;
+  animation: bounceIn 0.5s ease;
+}
+
+.pwa-demo-button {
+  bottom: 90px;
+  right: 20px;
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  color: white;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: none;
+}
+
+.pwa-demo-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.pwa-demo-button.show {
+  display: block;
+  animation: fadeInUp 0.5s ease 0.2s both;
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3) translateY(100px);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05) translateY(-10px);
+  }
+  70% {
+    transform: scale(0.9) translateY(0);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==========================================
+   UPDATE NOTIFICATION
+   ========================================== */
+.update-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  z-index: 1002;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+  text-align: center;
+  max-width: 90%;
+  min-width: 300px;
+  display: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.update-notification.show {
+  display: block;
+  animation: slideDown 0.3s ease;
+}
+
+.update-notification p {
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+}
+
+.update-btn,
+.update-btn-secondary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.update-btn {
+  background: white;
+  color: #2e7d32;
+}
+
+.update-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.update-btn-secondary {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.update-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================
+   MOBILE RESPONSIVENESS
+   ========================================== */
+@media (max-width: 768px) {
+  .install-prompt,
+  .pwa-demo-button {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    border-radius: 12px;
+    justify-content: center;
+    max-width: none;
+  }
+  
+  .pwa-demo-button {
+    bottom: 70px;
+  }
+  
+  .offline-indicator {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+  
+  .toast {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+  }
+  
+  .update-notification {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    max-width: none;
+    min-width: auto;
+  }
+  
+  .connection-status {
+    top: 5px;
+    left: 5px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* ==========================================
+   HEADER ENHANCEMENTS FOR PWA
+   ========================================== */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+}
+
+header.scrolled {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+/* ==========================================
+   STORY CARDS ENHANCEMENT
+   ========================================== */
+.story-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.story-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.story-card.offline-cached {
+  border-left: 4px solid #4caf50;
+  position: relative;
+}
+
+.story-card.offline-cached::before {
+  content: "📱";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  z-index: 1;
+}
+
+/* ==========================================
+   PERFORMANCE INDICATOR
+   ========================================== */
+.performance-indicator {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  z-index: 999;
+  display: none;
+}
+
+.performance-indicator.show {
+  display: block;
+}
+
+/* ==========================================
+   ERROR BOUNDARY STYLES
+   ========================================== */
+.error-boundary {
+  padding: 2rem;
+  text-align: center;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 12px;
+  margin: 1rem;
+  color: #742a2a;
+}
+
+.error-boundary h2 {
+  color: #c53030;
+  margin-bottom: 1rem;
+}
+
+.error-boundary button {
+  background: #c53030;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.error-boundary button:hover {
+  background: #9b2c2c;
+}
+
+/* ==========================================
+   SPLASH SCREEN (PWA)
+   ========================================== */
+@media (display-mode: standalone) {
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* Hide elements that don't make sense in standalone mode */
+  .browser-only {
+    display: none !important;
+  }
+  
+  /* Adjust layout for standalone mode */
+  header {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  main {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ==========================================
+   DARK MODE SUPPORT
+   ========================================== */
+@media (prefers-color-scheme: dark) {
+  .story-card {
+    background: #2d2d2d;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .error-boundary {
+    background: #3d2626;
+    border-color: #742a2a;
+    color: #fed7d7;
+  }
+  
+  header {
+    background: rgba(45, 45, 45, 0.95);
+    color: white;
+  }
+}
+
+/* ==========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #000;
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 9999;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 6px;
+}
+
+/* ==========================================
+   FOCUS INDICATORS
+   ========================================== */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* ==========================================
+   HIGH CONTRAST MODE SUPPORT
+   ========================================== */
+@media (prefers-contrast: high) {
+  .toast,
+  .install-prompt,
+  .pwa-demo-button,
+  .update-notification {
+    border: 2px solid currentColor;
+  }
+  
+  .story-card {
+    border: 1px solid #333;
+  }
+}

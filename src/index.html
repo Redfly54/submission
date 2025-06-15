@@ -41,6 +41,8 @@
   
   <!-- Existing Stylesheets -->
   <link rel="stylesheet" href="./styles/styles.css" />
+  <link rel="stylesheet" href="./styles/pwa-styles.css" />
+  <link rel="stylesheet" href="./utils/pwa-styles.css" />
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   
@@ -358,7 +360,7 @@
         }
 
         try {
-          const registration = await navigator.serviceWorker.register('sw.js', {
+          const registration = await navigator.serviceWorker.register('./sw.js', {
             scope: './'
           });
 
@@ -586,6 +588,7 @@
   <script src="https://kit.fontawesome.com/REPLACE_WITH_YOUR_KIT.js" crossorigin="anonymous"></script>
 
   <!-- Your Existing App Script -->
+  <script src="./scripts/utils/IndexedDBManager.js"></script>
   <script type="module" src="./scripts/app.js"></script>
 </body>
 </html>

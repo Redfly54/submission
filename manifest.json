@@ -1,77 +1,199 @@
 {
-  "name": "Dicoding Story - Share Your Stories",
+  "name": "Dicoding Story",
   "short_name": "DicodingStory",
-  "description": "Aplikasi berbagi cerita dengan fitur lokasi",
-  "start_url": "/",
+  "description": "Progressive Web App untuk berbagi cerita dengan fitur lokasi dan mode offline",
+  "version": "1.2.0",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#1976d2",
   "background_color": "#ffffff",
-  "scope": "/",
   "lang": "id",
-  "categories": ["social", "entertainment"],
+  "dir": "ltr",
+  
   "icons": [
     {
-      "src": "/android/android-launchericon-48-48.png",
-      "sizes": "48x48",
+      "src": "ios/57.png",
+      "sizes": "57x57",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-72-72.png",
+      "src": "ios/60.png",
+      "sizes": "60x60",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ios/72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-96-96.png",
-      "sizes": "96x96",
+      "src": "ios/76.png",
+      "sizes": "76x76",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-144-144.png",
+      "src": "ios/114.png",
+      "sizes": "114x114",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ios/120.png",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ios/144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-192-192.png",
+      "src": "ios/152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ios/180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "android/android-launchericon-192-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/android/android-launchericon-512-512.png",
+      "src": "android/android-launchericon-512-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
+  
   "shortcuts": [
     {
-      "name": "Lihat Stories",
+      "name": "All Stories",
       "short_name": "Stories",
-      "description": "Lihat semua stories yang tersedia",
-      "url": "/#/stories",
+      "description": "View all available stories",
+      "url": "./#/stories",
       "icons": [
         {
-          "src": "/images/shortcut-stories.png",
-          "sizes": "96x96"
+          "src": "ios/96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Tambah Story",
+      "name": "Add Story",
       "short_name": "Add",
-      "description": "Tambah story baru",
-      "url": "/#/add-story",
+      "description": "Create a new story",
+      "url": "./#/add",
       "icons": [
         {
-          "src": "/images/shortcut-add.png",
-          "sizes": "96x96"
+          "src": "ios/96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Offline Stories",
+      "short_name": "Offline",
+      "description": "View cached stories offline",
+      "url": "./#/offline",
+      "icons": [
+        {
+          "src": "ios/96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
-  ]
+  ],
+
+  "categories": [
+    "social",
+    "lifestyle",
+    "productivity",
+    "utilities"
+  ],
+
+  "screenshots": [
+    {
+      "src": "screenshots/mobile-1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Stories list view on mobile"
+    },
+    {
+      "src": "screenshots/mobile-2.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Add story form on mobile"
+    },
+    {
+      "src": "screenshots/desktop-1.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Stories with map view on desktop"
+    }
+  ],
+
+  "prefer_related_applications": false,
+  "related_applications": [],
+
+  "iarc_rating_id": "",
+
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+
+  "file_handlers": [
+    {
+      "action": "./#/import",
+      "accept": {
+        "application/json": [".json"]
+      }
+    }
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+dicoding-story",
+      "url": "./#/story/%s"
+    }
+  ],
+
+  "share_target": {
+    "action": "./#/add",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "description",
+      "url": "url"
+    }
+  },
+
+  "handle_links": "preferred",
+
+  "capture_links": "existing-client-navigate"
 }
