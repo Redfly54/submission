@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dicoding Story - Aplikasi berbagi cerita dengan fitur lokasi">
+  <meta name="theme-color" content="#1976d2">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Dicoding Story">
+  <meta name="application-name" content="Dicoding Story">
+  <meta name="msapplication-TileColor" content="#1976d2">
+  
+  <!-- PWA Icons -->
+  <link rel="apple-touch-icon" href="ios/180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="ios/152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="ios/144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="ios/120.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="ios/114.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="ios/76.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="ios/72.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="ios/60.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="ios/57.png">
+  
+  <!-- Standard Favicons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="ios/32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="ios/16.png">
+  <link rel="shortcut icon" href="ios/32.png">
+  
+  <!-- Android Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="android/android-launchericon-192-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="android/android-launchericon-512-512.png">
+  
+  <!-- Web App Manifest (CRITICAL for PWA) -->
+  <link rel="manifest" href="manifest.json">
+  
+  <title>Dicoding Story SPA</title>
+  
+  <!-- Existing Stylesheets -->
+  <link rel="stylesheet" href="./styles/styles.css" />
+  <link rel="stylesheet" href="./styles/pwa-styles.css" />
+  <link rel="stylesheet" href="./utils/pwa-styles.css" />
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- PWA Enhanced Styles -->
+  <style>
+    /* PWA Enhancements untuk existing design */
+    
+    /* Offline Indicator */
+    .offline-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #ff5722, #e64a19);
+      color: white;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+      z-index: 1001;
+      display: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .offline-indicator.show {
+      display: block;
+    }
+    
+    /* Install Button */
+    .install-prompt {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #1976d2, #1565c0);
+      color: white;
+      border: none;
+      padding: 1rem 1.5rem;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 1000;
+      box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
+      transition: all 0.3s ease;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .install-prompt:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(25, 118, 210, 0.5);
+    }
+    
+    .install-prompt.show {
+      display: flex;
+    }
+    
+    /* PWA Demo Button */
+    .pwa-demo-button {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: linear-gradient(135deg, #4caf50, #388e3c);
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 999;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+      transition: all 0.3s ease;
+      display: none;
+    }
+    
+    .pwa-demo-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+    }
+    
+    .pwa-demo-button.show {
+      display: block;
+    }
+    
+    /* Loading Enhancement */
+    .pwa-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 2000;
+    }
+    
+    .pwa-loading.show {
+      display: flex;
+    }
+    
+    .pwa-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e3f2fd;
+      border-top: 4px solid #1976d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Enhanced Header untuk PWA */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .install-prompt,
+      .pwa-demo-button {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        border-radius: 12px;
+        justify-content: center;
+      }
+      
+      .pwa-demo-button {
+        bottom: 70px;
+      }
+      
+      .offline-indicator {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+      }
+    }
+    
+    /* Update notification */
+    .update-notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #4caf50, #388e3c);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      z-index: 1002;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 90%;
+      display: none;
+    }
+    
+    .update-notification.show {
+      display: block;
+    }
+    
+    .update-btn {
+      background: white;
+      color: #388e3c;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin: 0 0.25rem;
+    }
+    
+    .update-btn-secondary {
+      background: transparent;
+      color: white;
+      border: 1px solid white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- PWA Loading Screen -->
+  <div class="pwa-loading" id="pwa-loading">
+    <div class="pwa-spinner"></div>
+    <p>Loading Dicoding Story...</p>
+  </div>
+  
+  <!-- Offline Indicator -->
+  <div class="offline-indicator" id="offline-indicator">
+    📵 You are currently offline
+  </div>
+  
+  <!-- Update Notification -->
+  <div class="update-notification" id="update-notification">
+    <p>🔄 App update available!</p>
+    <button class="update-btn" onclick="PWAManager.updateApp()">Update Now</button>
+    <button class="update-btn-secondary" onclick="PWAManager.dismissUpdate()">Later</button>
+  </div>
+
+  <!-- Skip to Content Link (existing) -->
+  <a class="skip-to-content" href="#main-content">Skip to content</a>
+
+  <!-- Existing Header (enhanced with PWA) -->
+  <header>
+    <h1>📖 Dicoding Stories</h1>
+    <nav id="main-nav">
+      <a href="#/login">Login</a> |
+      <a href="#/register">Register</a> |
+      <a href="#/stories">All Stories</a>
+      <a href="#/add">Add Story</a>
+    </nav>
+  </header>
+
+  <!-- Existing Main Content -->
+  <main id="main-content" tabindex="-1">
+    <div id="app"><!-- konten SPA di-render di sini --></div>
+  </main>
+
+  <!-- Existing Footer -->
+  <footer role="contentinfo">
+    <p>&copy; 2025 Dicoding Story - Enhanced with PWA</p>
+  </footer>
+
+  <!-- Install Prompt Button -->
+  <button class="install-prompt" id="install-btn">
+    📱 Install App
+  </button>
+
+  <!-- PWA Demo Button -->
+  <button class="pwa-demo-button" id="pwa-demo-btn" onclick="PWAManager.showDemo()">
+    🚀 PWA Info
+  </button>
+
+  <!-- PWA Manager Script -->
+  <script>
+    // ========================================
+    // PWA Manager - Add PWA features without breaking existing app
+    // ========================================
+    window.PWAManager = {
+      deferredPrompt: null,
+      swRegistration: null,
+      updateNotification: null,
+      
+      // Initialize PWA features
+      async init() {
+        console.log('🚀 Initializing PWA features...');
+        
+        try {
+          // Hide PWA loading screen
+          setTimeout(() => {
+            const loading = document.getElementById('pwa-loading');
+            if (loading) loading.classList.remove('show');
+          }, 1000);
+          
+          // Setup offline detection
+          this.setupOfflineDetection();
+          
+          // Register service worker
+          await this.registerServiceWorker();
+          
+          // Setup install prompt
+          this.setupInstallPrompt();
+          
+          // Request notification permission
+          if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+          }
+          
+          // Show PWA demo button after 5 seconds
+          setTimeout(() => {
+            const demoBtn = document.getElementById('pwa-demo-btn');
+            if (demoBtn) demoBtn.classList.add('show');
+          }, 5000);
+          
+          console.log('✅ PWA features initialized successfully');
+        } catch (error) {
+          console.error('❌ Error initializing PWA features:', error);
+        }
+      },
+      
+      // Setup offline detection
+      setupOfflineDetection() {
+        const indicator = document.getElementById('offline-indicator');
+        
+        const updateStatus = () => {
+          if (navigator.onLine) {
+            indicator.classList.remove('show');
+          } else {
+            indicator.classList.add('show');
+          }
+        };
+        
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        updateStatus();
+      },
+      
+      // Register Service Worker
+      async registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) {
+          console.warn('Service Worker not supported');
+          return;
+        }
+
+        try {
+          const registration = await navigator.serviceWorker.register('./sw.js', {
+            scope: './'
+          });
+
+          console.log('✅ Service Worker registered:', registration.scope);
+          this.swRegistration = registration;
+
+          // Handle updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                this.showUpdateNotification();
+              }
+            });
+          });
+
+          return registration;
+        } catch (error) {
+          console.error('❌ Service Worker registration failed:', error);
+        }
+      },
+      
+      // Setup Install Prompt
+      setupInstallPrompt() {
+        const installBtn = document.getElementById('install-btn');
+        
+        // Capture install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+          console.log('📱 Install prompt available');
+          e.preventDefault();
+          this.deferredPrompt = e;
+          installBtn.classList.add('show');
+        });
+
+        // Handle install button click
+        installBtn.addEventListener('click', async () => {
+          if (!this.deferredPrompt) return;
+          
+          this.deferredPrompt.prompt();
+          const { outcome } = await this.deferredPrompt.userChoice;
+          console.log(`Install result: ${outcome}`);
+          
+          this.deferredPrompt = null;
+          installBtn.classList.remove('show');
+        });
+
+        // Handle app installed
+        window.addEventListener('appinstalled', () => {
+          console.log('🎉 App installed successfully');
+          installBtn.classList.remove('show');
+        });
+      },
+      
+      // Show update notification
+      showUpdateNotification() {
+        const notification = document.getElementById('update-notification');
+        if (notification) {
+          notification.classList.add('show');
+        }
+      },
+      
+      // Update app
+      updateApp() {
+        const notification = document.getElementById('update-notification');
+        if (notification) {
+          notification.classList.remove('show');
+        }
+        window.location.reload();
+      },
+      
+      // Dismiss update
+      dismissUpdate() {
+        const notification = document.getElementById('update-notification');
+        if (notification) {
+          notification.classList.remove('show');
+        }
+      },
+      
+      // Show PWA demo
+      showDemo() {
+        // Use existing app structure to show demo
+        const appContainer = document.getElementById('app');
+        if (appContainer) {
+          appContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem; background: white; border-radius: 12px; margin: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <h2>🚀 PWA Features Active</h2>
+              <p>Your Dicoding Story app now has Progressive Web App capabilities!</p>
+              
+              <div style="margin: 2rem 0;">
+                <button onclick="PWAManager.testFeatures()" style="
+                  background: linear-gradient(135deg, #1976d2, #1565c0);
+                  color: white;
+                  border: none;
+                  padding: 1rem 2rem;
+                  border-radius: 8px;
+                  cursor: pointer;
+                  font-size: 1rem;
+                  margin: 0.5rem;
+                  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+                ">
+                  🧪 Test PWA Features
+                </button>
+                
+                <button onclick="PWAManager.backToApp()" style="
+                  background: #666;
+                  color: white;
+                  border: none;
+                  padding: 1rem 2rem;
+                  border-radius: 8px;
+                  cursor: pointer;
+                  font-size: 1rem;
+                  margin: 0.5rem;
+                ">
+                  ← Back to Stories
+                </button>
+              </div>
+              
+              <div id="pwa-test-results"></div>
+            </div>
+          `;
+        }
+      },
+      
+      // Test PWA features
+      testFeatures() {
+        const results = document.getElementById('pwa-test-results');
+        if (!results) return;
+        
+        let html = '<div style="text-align: left; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 1rem; border-radius: 8px;">';
+        html += '<h3>PWA Status Check:</h3>';
+        
+        // Test Service Worker
+        if ('serviceWorker' in navigator) {
+          html += '<p>✅ Service Worker: Supported</p>';
+        } else {
+          html += '<p>❌ Service Worker: Not supported</p>';
+        }
+        
+        // Test Manifest
+        const manifest = document.querySelector('link[rel="manifest"]');
+        if (manifest) {
+          html += '<p>✅ Web App Manifest: Linked</p>';
+        } else {
+          html += '<p>❌ Web App Manifest: Not found</p>';
+        }
+        
+        // Test Install Prompt
+        if (this.deferredPrompt) {
+          html += '<p>✅ Install Prompt: Available</p>';
+        } else {
+          html += '<p>⚠️ Install Prompt: Not ready (wait 30-60 seconds)</p>';
+        }
+        
+        // Test Network
+        if (navigator.onLine) {
+          html += '<p>✅ Network: Online</p>';
+        } else {
+          html += '<p>📵 Network: Offline</p>';
+        }
+        
+        // Test Notifications
+        if ('Notification' in window) {
+          html += `<p>✅ Notifications: ${Notification.permission}</p>`;
+        } else {
+          html += '<p>❌ Notifications: Not supported</p>';
+        }
+        
+        html += '</div>';
+        
+        html += '<div style="margin-top: 1rem; padding: 1rem; background: #e3f2fd; border-radius: 8px;">';
+        html += '<h4>🎯 Next Steps:</h4>';
+        html += '<ul style="text-align: left; max-width: 500px; margin: 0 auto;">';
+        html += '<li>Wait for install prompt (30-60 seconds)</li>';
+        html += '<li>Test offline mode (F12 → Network → Offline)</li>';
+        html += '<li>Run Lighthouse PWA audit (F12 → Lighthouse)</li>';
+        html += '<li>Try installing the app to home screen</li>';
+        html += '</ul>';
+        html += '</div>';
+        
+        results.innerHTML = html;
+        
+        // Update with registration status
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          if (registrations.length > 0) {
+            results.innerHTML = results.innerHTML.replace('Service Worker: Supported', 'Service Worker: Registered ✅');
+          }
+        });
+      },
+      
+      // Back to main app
+      backToApp() {
+        // Use existing router to navigate
+        window.location.hash = '/stories';
+      }
+    };
+
+    // ========================================
+    // Initialize PWA when page loads
+    // ========================================
+    window.addEventListener('load', () => {
+      // Show PWA loading
+      const loading = document.getElementById('pwa-loading');
+      if (loading) loading.classList.add('show');
+      
+      // Initialize PWA features
+      window.PWAManager.init();
+    });
+
+    // ========================================
+    // Global Error Handler
+    // ========================================
+    window.addEventListener('error', (event) => {
+      console.error('💥 Global error:', event.error);
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('💥 Unhandled promise rejection:', event.reason);
+      event.preventDefault();
+    });
+  </script>
+
+  <!-- Existing External Scripts -->
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+  <script src="https://kit.fontawesome.com/REPLACE_WITH_YOUR_KIT.js" crossorigin="anonymous"></script>
+
+  <!-- Your Existing App Script -->
+  <script src="./scripts/utils/IndexedDBManager.js"></script>
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>
