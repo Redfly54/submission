@@ -1,5 +1,5 @@
 // Enhanced IndexedDBManager.js - User-driven storage
-class IndexedDBManager {
+class IndexDBManager {
   constructor() {
     this.dbName = 'DicodingStoryDB';
     this.version = 2; // Increment version for schema changes
@@ -388,7 +388,7 @@ class IndexedDBManager {
 // Enhanced Story Offline Manager with user-driven approach
 class StoryOfflineManager {
   constructor() {
-    this.dbManager = new IndexedDBManager();
+    this.dbManager = new IndexDBManager();
   }
 
   async init() {
@@ -512,7 +512,7 @@ class StoryOfflineManager {
 }
 
 // Global instances
-window.IndexedDBManager = new IndexedDBManager();
+window.IndexDBManager = new IndexDBManager();
 window.StoryOfflineManager = new StoryOfflineManager();
 
 // Initialize when DOM loads
@@ -526,4 +526,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-export { IndexedDBManager, StoryOfflineManager };
+export { IndexDBManager, StoryOfflineManager };

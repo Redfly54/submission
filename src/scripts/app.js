@@ -57,13 +57,31 @@ const PWANavigationHelper = {
 // ========================================
 // YOUR EXISTING APP.JS CODE (enhanced)
 // ========================================
-
 import Model from './model.js';
 import AddStoryPresenter from './presenter/AddStoryPresenter.js';
 import LoginPresenter from './presenter/LoginPresenter.js';
 import RegisterPresenter from './presenter/RegisterPresenter.js';
 import StoriesListPresenter from './presenter/StoriesListPresenter.js';
 import StoryDetailPresenter from './presenter/StoryDetailPresenter.js';
+import { IndexDBManager } from './utils/IndexDBManager.js';
+
+
+const dbManager = new IndexDBManager();
+
+// Initialize navigation on load
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 DOM loaded, initializing navigation...');
+  
+  // Initialize IndexedDB
+  try {
+    await dbManager.init();
+    console.log('✅ IndexedDB initialized');
+  } catch (error) {
+    console.error('❌ IndexedDB init failed:', error);
+  }
+  
+  PWANavigationHelper.updateNavigation();
+});
 
 const routes = {
   '/login': () => new LoginPresenter(Model).init(),
