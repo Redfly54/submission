@@ -1,10 +1,7 @@
-// ========================================
-// PWA INTEGRATION - Add to top of existing app.js
-// ========================================
+// Fixed app.js with proper imports and initialization
 
-// PWA Navigation Helper (fixed untuk story_token)
+// PWA Navigation Helper
 const PWANavigationHelper = {
-  // Update navigation based on auth status
   updateNavigation() {
     const nav = document.getElementById('main-nav');
     const token = localStorage.getItem('story_token');
@@ -12,7 +9,6 @@ const PWANavigationHelper = {
     console.log('Updating navigation, token:', token ? 'exists' : 'not found');
     
     if (token && nav) {
-      // User is logged in - show relevant nav
       nav.innerHTML = `
         <a href="#/stories">All Stories</a> |
         <a href="#/add">Add Story</a> |
@@ -20,7 +16,6 @@ const PWANavigationHelper = {
       `;
       console.log('✅ Navigation updated for authenticated user');
     } else if (nav) {
-      // User not logged in - show login/register
       nav.innerHTML = `
         <a href="#/login">Login</a> |
         <a href="#/register">Register</a> |
@@ -30,81 +25,47 @@ const PWANavigationHelper = {
     }
   },
   
-  // Handle logout
   logout() {
-    // Clear story_token (sesuai dengan LoginModel)
     localStorage.removeItem('story_token');
-    localStorage.removeItem('userData'); // jika ada data user tambahan
+    localStorage.removeItem('userData');
     
-    // Update navigation
     this.updateNavigation();
-    
-    // Redirect to login
     window.location.hash = '/login';
     
-    // Optional: Show logout message
     console.log('✅ Logged out successfully');
     
-    // Show success message
     if (window.PWAIntegration) {
       window.PWAIntegration.showSuccess('Berhasil logout');
     }
     
-    return false; // Prevent default link behavior
+    return false;
   }
 };
 
-// ========================================
-// YOUR EXISTING APP.JS CODE (enhanced)
-// ========================================
+// Import modules
 import Model from './model.js';
 import AddStoryPresenter from './presenter/AddStoryPresenter.js';
 import LoginPresenter from './presenter/LoginPresenter.js';
 import RegisterPresenter from './presenter/RegisterPresenter.js';
 import StoriesListPresenter from './presenter/StoriesListPresenter.js';
 import StoryDetailPresenter from './presenter/StoryDetailPresenter.js';
-// FIXED: Import dengan nama yang benar
-import { IndexDBManager } from './utils/IndexDBManager.js';
 
-// FIXED: Initialize IndexedDB properly
-let dbManager;
+// FIXED: Only import if needed, but don't instantiate here
+// The IndexedDBManager will be handled by the separate script
 
-// Initialize navigation on load
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 DOM loaded, initializing...');
-  
-  // FIXED: Initialize IndexedDB dengan error handling
-  try {
-    dbManager = new IndexDBManager();
-    await dbManager.init();
-    console.log('✅ IndexedDB initialized');
-    
-    // FIXED: Initialize global managers setelah DOM ready
-    window.IndexedDBManager = dbManager;
-    if (window.StoryOfflineManager) {
-      await window.StoryOfflineManager.init();
-      console.log('✅ StoryOfflineManager initialized');
-    }
-  } catch (error) {
-    console.error('❌ IndexedDB init failed:', error);
-  }
-  
-  PWANavigationHelper.updateNavigation();
-});
-
+// Routes configuration
 const routes = {
-  '/login': () => new LoginPresenter(Model).init(),
-  '/register': () => new RegisterPresenter(Model).init(),
-  '/stories': () => new StoriesListPresenter(Model).init(),
+  '/login': () => new LoginPresenter().init(),
+  '/register': () => new RegisterPresenter().init(),
+  '/stories': () => new StoriesListPresenter().init(),
   '/stories/:id': (id) => new StoryDetailPresenter(Model, id).init(),
-  '/add': () => new AddStoryPresenter(Model).init(),
+  '/add': () => new AddStoryPresenter().init(),
 };
 
 function parseLocation() {
-  // hilangkan leading '#' dan leading '/'
   const raw = location.hash.replace(/^#\/?/, '') || 'stories';
   const segments = raw.split('/');
-  const route = segments[0];          // 'login' atau 'register' atau 'stories'
+  const route = segments[0];
   const id = segments[1] || null;
   return { path: `/${route}`, id };
 }
@@ -113,19 +74,14 @@ function router() {
   const { path, id } = parseLocation();
   console.log('Router:', { path, id });
 
-  // ========================================
-  // PWA ENHANCEMENT: Improved auth check
-  // ========================================
-  const authRequired = ['/add']; // Only /add requires auth, stories can be viewed publicly
+  // Enhanced auth check
+  const authRequired = ['/add'];
   const token = localStorage.getItem('story_token');
   
   if (authRequired.includes(path) && !token) {
     console.log('Auth required for', path, ', redirecting to login');
-    
-    // Store intended destination
     localStorage.setItem('redirectAfterLogin', location.hash);
     
-    // Optional: Show login required message
     if (window.PWAManager) {
       console.log('⚠️ Login required to access this page');
     }
@@ -143,13 +99,9 @@ function router() {
   console.log('  matched route:', route);
 
   if (route) {
-    // ========================================
-    // PWA ENHANCEMENT: Update navigation after route
-    // ========================================
     try {
       routes[route](id);
       
-      // Update PWA navigation after a short delay
       setTimeout(() => {
         PWANavigationHelper.updateNavigation();
       }, 100);
@@ -157,7 +109,6 @@ function router() {
     } catch (error) {
       console.error('❌ Error loading route:', error);
       
-      // Fallback to stories page
       if (path !== '/stories') {
         console.log('Falling back to stories page...');
         location.hash = '/stories';
@@ -180,29 +131,21 @@ function navigate() {
   }
 }
 
-// ========================================
-// EVENT LISTENERS (unchanged)
-// ========================================
+// Event listeners
 window.addEventListener('hashchange', navigate);
 window.addEventListener('load', navigate);
 
-// ========================================
-// PWA ENHANCEMENTS (improved)
-// ========================================
-
-// Enhanced Model for PWA (sesuai dengan LoginModel)
+// Enhanced Model for PWA
 if (Model && typeof Model.login === 'function') {
   const originalLogin = Model.login;
   Model.login = async function(...args) {
     const result = await originalLogin.apply(this, args);
     
-    // Update navigation after successful login
     if (result && result.token) {
       console.log('✅ Login successful, updating navigation...');
       setTimeout(() => {
         PWANavigationHelper.updateNavigation();
         
-        // Redirect to intended page if stored
         const redirectTo = localStorage.getItem('redirectAfterLogin');
         if (redirectTo) {
           localStorage.removeItem('redirectAfterLogin');
@@ -217,7 +160,6 @@ if (Model && typeof Model.login === 'function') {
 
 // PWA Integration Helper
 window.PWAIntegration = {
-  // Show loading during operations
   showLoading() {
     const loading = document.getElementById('pwa-loading');
     if (loading) loading.classList.add('show');
@@ -228,23 +170,16 @@ window.PWAIntegration = {
     if (loading) loading.classList.remove('show');
   },
   
-  // Show success message
   showSuccess(message) {
     console.log('✅ Success:', message);
-    
-    // Could create a toast notification here
     this.showToast(message, 'success');
   },
   
-  // Show error message
   showError(message) {
     console.error('❌ Error:', message);
-    
-    // Could create a toast notification here
     this.showToast(message, 'error');
   },
   
-  // Simple toast notification system
   showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `pwa-toast pwa-toast-${type}`;
@@ -263,7 +198,6 @@ window.PWAIntegration = {
     `;
     toast.textContent = message;
     
-    // Add animation
     const style = document.createElement('style');
     style.textContent = `
       @keyframes slideIn {
@@ -275,7 +209,6 @@ window.PWAIntegration = {
     
     document.body.appendChild(toast);
     
-    // Remove after 3 seconds
     setTimeout(() => {
       toast.style.animation = 'slideIn 0.3s ease reverse';
       setTimeout(() => {
@@ -289,42 +222,44 @@ window.PWAIntegration = {
 
 // Make PWA helpers available globally
 window.PWANavigationHelper = PWANavigationHelper;
-
-// Create global updateNavigation function for backward compatibility
 window.updateNavigation = function() {
   console.log('🔄 Global updateNavigation called');
   PWANavigationHelper.updateNavigation();
 };
 
-// FIXED: Wait for both DOM and managers to be ready
-let managersReady = false;
+// FIXED: Better initialization handling
+let appInitialized = false;
 
-async function waitForManagers() {
-  let attempts = 0;
-  const maxAttempts = 50; // 5 seconds
+async function initializeApp() {
+  if (appInitialized) return;
   
-  while (!managersReady && attempts < maxAttempts) {
-    if (window.StoryOfflineManager && window.IndexedDBManager) {
-      managersReady = true;
-      console.log('✅ All managers ready');
-      break;
+  try {
+    console.log('🚀 Initializing app...');
+    
+    // Wait a bit for IndexedDB managers to load
+    let attempts = 0;
+    while (attempts < 30 && !window.IndexedDBManager) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
     }
     
-    await new Promise(resolve => setTimeout(resolve, 100));
-    attempts++;
-  }
-  
-  if (!managersReady) {
-    console.warn('⚠️ Managers not ready after timeout');
+    if (window.IndexedDBManager) {
+      console.log('✅ IndexedDB managers detected');
+    } else {
+      console.warn('⚠️ IndexedDB managers not available');
+    }
+    
+    PWANavigationHelper.updateNavigation();
+    appInitialized = true;
+    
+    console.log('✅ App initialized successfully');
+  } catch (error) {
+    console.error('❌ App initialization failed:', error);
   }
 }
 
-// Initialize navigation on load and hash changes
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 DOM loaded, initializing navigation...');
-  await waitForManagers();
-  PWANavigationHelper.updateNavigation();
-});
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Also update navigation when hash changes
 window.addEventListener('hashchange', () => {

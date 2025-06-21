@@ -586,32 +586,7 @@
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
 
   <!-- FIXED: Load IndexedDBManager first, then app.js -->
-  <script type="module" src="./scripts/utils/IndexDBManager.js"></script>
+  <script type="module" src="./scripts/utils/IndexedDBManager.js"></script>
   <script type="module" src="./scripts/app.js"></script>
-  <script>
-setTimeout(() => {
-  console.log('🧪 Testing StoryOfflineManager methods...');
-  
-  const manager = window.StoryOfflineManager;
-  if (manager) {
-    console.log('Methods available:', {
-      getOfflineStories: typeof manager.getOfflineStories,
-      cacheStories: typeof manager.cacheStories,
-      getAllUserStories: typeof manager.getAllUserStories,
-      hasOfflineData: typeof manager.hasOfflineData,
-      getOfflineInfo: typeof manager.getOfflineInfo
-    });
-    
-    // Test call
-    manager.getOfflineStories?.().then(stories => {
-      console.log('✅ getOfflineStories test successful:', stories.length, 'stories');
-    }).catch(error => {
-      console.error('❌ getOfflineStories test failed:', error);
-    });
-  } else {
-    console.error('❌ StoryOfflineManager not available');
-  }
-}, 3000);
-</script>
 </body>
 </html>
