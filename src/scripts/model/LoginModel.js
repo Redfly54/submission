@@ -1,3 +1,8 @@
+const API_CONFIG = {
+  development: 'https://story-api.dicoding.dev/v1',
+  production: 'https://story-api.dicoding.dev/v1'
+};
+
 const BASE = 'https://story-api.dicoding.dev/v1';
 
 export default class LoginModel {
@@ -6,19 +11,32 @@ export default class LoginModel {
   }
 
   // Make a request to the API
-  async request(endpoint, { method = 'GET', body, auth = false } = {}) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (auth && this.token) headers.Authorization = `Bearer ${this.token}`;
-
-    const res = await fetch(`${BASE}${endpoint}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+  async request(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...options.headers
+      },
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'omit' // Don't send credentials for CORS
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'API Error');
-    return data;
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error: Please check your internet connection');
+    }
+    throw error;
   }
+}
+
 
   // Login function for handling user login
   async login(email, password) {

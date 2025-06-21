@@ -19,24 +19,24 @@ export default class PushNotificationManager {
    * Registrasi service worker
    * @returns {Promise<ServiceWorkerRegistration>}
    */
-  async registerServiceWorker() {
-    if (!this.isSupported()) {
-      throw new Error('Push messaging tidak didukung oleh browser ini');
-    }
+  // async registerServiceWorker() {
+  //   if (!this.isSupported()) {
+  //     throw new Error('Push messaging tidak didukung oleh browser ini');
+  //   }
 
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker berhasil diregistrasi:', registration);
+  //   try {
+  //     const registration = await navigator.serviceWorker.register('/sw.js');
+  //     console.log('Service Worker berhasil diregistrasi:', registration);
       
-      // Tunggu sampai service worker aktif
-      await this.waitForServiceWorkerReady(registration);
+  //     // Tunggu sampai service worker aktif
+  //     await this.waitForServiceWorkerReady(registration);
       
-      return registration;
-    } catch (error) {
-      console.error('Gagal registrasi Service Worker:', error);
-      throw new Error('Gagal registrasi Service Worker: ' + error.message);
-    }
-  }
+  //     return registration;
+  //   } catch (error) {
+  //     console.error('Gagal registrasi Service Worker:', error);
+  //     throw new Error('Gagal registrasi Service Worker: ' + error.message);
+  //   }
+  // }
 
   /**
    * Menunggu service worker siap
@@ -88,7 +88,7 @@ export default class PushNotificationManager {
   async subscribeToPush() {
     try {
       // 1. Registrasi service worker
-      const registration = await this.registerServiceWorker();
+      const registration = await navigator.serviceWorker.ready;
       
       // 2. Minta izin notifikasi
       await this.requestPermission();
@@ -169,23 +169,14 @@ export default class PushNotificationManager {
    * Ambil subscription yang ada
    * @returns {Promise<PushSubscription|null>}
    */
-  async getSubscription() {
-    if (!this.isSupported()) {
-      return null;
-    }
-    
-    try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        return null;
-      }
-      
-      return await registration.pushManager.getSubscription();
-    } catch (error) {
-      console.error('Gagal mengambil subscription:', error);
-      return null;
-    }
+ async getSubscription() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+  } catch (error) {
+    return null;
   }
+}
 
   /**
    * Unsubscribe dari push notification

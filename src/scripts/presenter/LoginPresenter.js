@@ -76,16 +76,29 @@ export default class LoginPresenter {
         }, 300);
         
       } catch (err) {
-        console.error('Login error:', err);
-        
-        // Hide loading jika error
-        if (window.PWAIntegration) {
-          window.PWAIntegration.hideLoading();
-          window.PWAIntegration.showError(err.message || 'Login gagal');
-        } else {
-          alert(err.message || 'Login gagal');
-        }
-      }
+  console.error('Login error:', err);
+  
+  // Enhanced error handling
+  let errorMessage = 'Login gagal';
+  
+  if (err.message.includes('Network error')) {
+    errorMessage = '🌐 Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+  } else if (err.message.includes('HTTP 401')) {
+    errorMessage = '🔒 Email atau password salah.';
+  } else if (err.message.includes('HTTP 400')) {
+    errorMessage = '⚠️ Data yang dimasukkan tidak valid.';
+  } else if (err.message.includes('CORS')) {
+    errorMessage = '🔧 Masalah konfigurasi server. Coba refresh halaman.';
+  }
+  
+  // Hide loading dan show error
+  if (window.PWAIntegration) {
+    window.PWAIntegration.hideLoading();
+    window.PWAIntegration.showError(errorMessage);
+  } else {
+    alert(errorMessage);
+  }
+}
     });
   }
 
