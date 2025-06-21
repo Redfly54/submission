@@ -16,7 +16,16 @@ class IndexDBManager {
 
   async init() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
+      // Use explicit indexedDB reference
+      const IDBFactory = window.indexDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+      
+      if (!IDBFactory) {
+        console.error('❌ IndexedDB not supported');
+        reject(new Error('IndexedDB not supported'));
+        return;
+      }
+
+      const request = IDBFactory.open(this.dbName, this.version);
 
       request.onerror = () => {
         console.error('❌ IndexedDB initialization failed');
@@ -39,6 +48,7 @@ class IndexDBManager {
           });
           savedStore.createIndex('savedAt', 'savedAt', { unique: false });
           savedStore.createIndex('name', 'name', { unique: false });
+          console.log('📚 Created saved stories store');
         }
 
         // Create liked stories store  
@@ -47,6 +57,7 @@ class IndexDBManager {
             keyPath: 'id'
           });
           likedStore.createIndex('likedAt', 'likedAt', { unique: false });
+          console.log('❤️ Created liked stories store');
         }
 
         // Create offline stories store (manual downloads)
@@ -55,6 +66,7 @@ class IndexDBManager {
             keyPath: 'id'
           });
           offlineStore.createIndex('downloadedAt', 'downloadedAt', { unique: false });
+          console.log('📱 Created offline stories store');
         }
 
         // Create user preferences store
@@ -62,6 +74,7 @@ class IndexDBManager {
           db.createObjectStore(this.storeNames.userPreferences, {
             keyPath: 'key'
           });
+          console.log('⚙️ Created preferences store');
         }
 
         console.log('📦 Enhanced object stores created');
@@ -71,6 +84,7 @@ class IndexDBManager {
 
   // ====== SAVED STORIES (Bookmarks) ======
   async saveStoryForLater(story) {
+    console.log('💾 Saving story for later:', story.name);
     return this._saveToStore(this.storeNames.savedStories, {
       ...story,
       savedAt: new Date().toISOString(),
@@ -79,6 +93,7 @@ class IndexDBManager {
   }
 
   async removeSavedStory(storyId) {
+    console.log('🗑️ Removing saved story:', storyId);
     return this._removeFromStore(this.storeNames.savedStories, storyId);
   }
 
@@ -92,6 +107,7 @@ class IndexDBManager {
 
   // ====== LIKED STORIES (Favorites) ======
   async likeStory(story) {
+    console.log('❤️ Liking story:', story.name);
     return this._saveToStore(this.storeNames.likedStories, {
       ...story,
       likedAt: new Date().toISOString(),
@@ -100,6 +116,7 @@ class IndexDBManager {
   }
 
   async unlikeStory(storyId) {
+    console.log('💔 Unliking story:', storyId);
     return this._removeFromStore(this.storeNames.likedStories, storyId);
   }
 
@@ -113,6 +130,7 @@ class IndexDBManager {
 
   // ====== OFFLINE STORIES (Manual Downloads) ======
   async downloadStoryForOffline(story) {
+    console.log('📱 Downloading story for offline:', story.name);
     return this._saveToStore(this.storeNames.offlineStories, {
       ...story,
       downloadedAt: new Date().toISOString(),
@@ -121,6 +139,7 @@ class IndexDBManager {
   }
 
   async removeOfflineStory(storyId) {
+    console.log('📱❌ Removing offline story:', storyId);
     return this._removeFromStore(this.storeNames.offlineStories, storyId);
   }
 
@@ -278,15 +297,29 @@ class IndexDBManager {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const objectStore = transaction.objectStore(storeName);
-      const request = objectStore.put(data);
+      try {
+        const transaction = this.db.transaction([storeName], 'readwrite');
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.put(data);
 
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => {
-        console.error(`❌ Failed to save to ${storeName}:`, request.error);
+        request.onsuccess = () => {
+          console.log(`✅ Saved to ${storeName}:`, data.name || data.id);
+          resolve(true);
+        };
+        
+        request.onerror = () => {
+          console.error(`❌ Failed to save to ${storeName}:`, request.error);
+          reject(false);
+        };
+
+        transaction.onerror = () => {
+          console.error(`❌ Transaction failed for ${storeName}:`, transaction.error);
+          reject(false);
+        };
+      } catch (error) {
+        console.error(`❌ Error saving to ${storeName}:`, error);
         reject(false);
-      };
+      }
     });
   }
 
@@ -297,15 +330,24 @@ class IndexDBManager {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const objectStore = transaction.objectStore(storeName);
-      const request = objectStore.delete(id);
+      try {
+        const transaction = this.db.transaction([storeName], 'readwrite');
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.delete(id);
 
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => {
-        console.error(`❌ Failed to remove from ${storeName}:`, request.error);
+        request.onsuccess = () => {
+          console.log(`✅ Removed from ${storeName}:`, id);
+          resolve(true);
+        };
+        
+        request.onerror = () => {
+          console.error(`❌ Failed to remove from ${storeName}:`, request.error);
+          reject(false);
+        };
+      } catch (error) {
+        console.error(`❌ Error removing from ${storeName}:`, error);
         reject(false);
-      };
+      }
     });
   }
 
@@ -315,16 +357,26 @@ class IndexDBManager {
       return [];
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([storeName], 'readonly');
-      const objectStore = transaction.objectStore(storeName);
-      const request = objectStore.getAll();
+    return new Promise((resolve) => {
+      try {
+        const transaction = this.db.transaction([storeName], 'readonly');
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.getAll();
 
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => {
-        console.error(`❌ Failed to get all from ${storeName}:`, request.error);
-        reject([]);
-      };
+        request.onsuccess = () => {
+          const result = request.result || [];
+          console.log(`📖 Retrieved ${result.length} items from ${storeName}`);
+          resolve(result);
+        };
+        
+        request.onerror = () => {
+          console.error(`❌ Failed to get all from ${storeName}:`, request.error);
+          resolve([]); // Return empty array instead of rejecting
+        };
+      } catch (error) {
+        console.error(`❌ Error getting all from ${storeName}:`, error);
+        resolve([]);
+      }
     });
   }
 
@@ -334,16 +386,21 @@ class IndexDBManager {
       return null;
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([storeName], 'readonly');
-      const objectStore = transaction.objectStore(storeName);
-      const request = objectStore.get(id);
+    return new Promise((resolve) => {
+      try {
+        const transaction = this.db.transaction([storeName], 'readonly');
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.get(id);
 
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => {
-        console.error(`❌ Failed to get from ${storeName}:`, request.error);
-        reject(null);
-      };
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => {
+          console.error(`❌ Failed to get from ${storeName}:`, request.error);
+          resolve(null); // Return null instead of rejecting
+        };
+      } catch (error) {
+        console.error(`❌ Error getting from ${storeName}:`, error);
+        resolve(null);
+      }
     });
   }
 
@@ -363,15 +420,24 @@ class IndexDBManager {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const objectStore = transaction.objectStore(storeName);
-      const request = objectStore.clear();
+      try {
+        const transaction = this.db.transaction([storeName], 'readwrite');
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.clear();
 
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => {
-        console.error(`❌ Failed to clear ${storeName}:`, request.error);
+        request.onsuccess = () => {
+          console.log(`🧹 Cleared ${storeName}`);
+          resolve(true);
+        };
+        
+        request.onerror = () => {
+          console.error(`❌ Failed to clear ${storeName}:`, request.error);
+          reject(false);
+        };
+      } catch (error) {
+        console.error(`❌ Error clearing ${storeName}:`, error);
         reject(false);
-      };
+      }
     });
   }
 
@@ -388,15 +454,92 @@ class IndexDBManager {
 // Enhanced Story Offline Manager with user-driven approach
 class StoryOfflineManager {
   constructor() {
-    this.dbManager = new IndexDBManager();
+    this.dbManager = null;
+    this.initialized = false;
   }
 
   async init() {
-    return await this.dbManager.init();
+    try {
+      if (window.IndexDBManager) {
+        this.dbManager = window.IndexDBManager;
+        console.log('📱 Using existing IndexedDBManager');
+      } else {
+        this.dbManager = new IndexDBManager();
+        await this.dbManager.init();
+        console.log('📱 Created new IndexedDBManager');
+      }
+      
+      this.initialized = true;
+      console.log('✅ StoryOfflineManager initialized');
+      return true;
+    } catch (error) {
+      console.error('❌ StoryOfflineManager init failed:', error);
+      this.initialized = false;
+      return false;
+    }
+  }
+
+  async getOfflineStories() {
+    if (!this.dbManager) {
+      return [];
+    }
+    return await this.dbManager.getOfflineStories();
+  }
+
+  // TAMBAHKAN METHOD INI JUGA:
+  async hasOfflineData() {
+    const stories = await this.getOfflineStories();
+    return stories.length > 0;
+  }
+
+  // TAMBAHKAN METHOD INI:
+  async getOfflineInfo() {
+    const stories = await this.getOfflineStories();
+    return {
+      count: stories.length,
+      size: JSON.stringify(stories).length,
+      sizeFormatted: this.formatBytes(JSON.stringify(stories).length),
+      lastCached: stories.length > 0 ? stories[0].downloadedAt : null
+    };
+  }
+
+  // TAMBAHKAN METHOD INI:
+  async cacheStories(stories) {
+    if (!this.dbManager) return false;
+    
+    try {
+      for (const story of stories) {
+        await this.dbManager.downloadStoryForOffline(story);
+      }
+      return true;
+    } catch (error) {
+      console.error('Cache stories failed:', error);
+      return false;
+    }
+  }
+
+  // TAMBAHKAN METHOD INI:
+  async clearOfflineStories() {
+    if (!this.dbManager) return false;
+    return await this.dbManager.clearUserData('offline');
+  }
+
+  // TAMBAHKAN UTILITY METHOD:
+  formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   // ====== USER ACTIONS ======
   async saveStoryForLater(story) {
+    if (!this.initialized || !this.dbManager) {
+      console.error('StoryOfflineManager not initialized');
+      return false;
+    }
+
     const success = await this.dbManager.saveStoryForLater(story);
     if (success) {
       this.notifyUser(`📚 "${story.name}" disimpan untuk dibaca nanti`);
@@ -405,6 +548,11 @@ class StoryOfflineManager {
   }
 
   async likeStory(story) {
+    if (!this.initialized || !this.dbManager) {
+      console.error('StoryOfflineManager not initialized');
+      return false;
+    }
+
     const success = await this.dbManager.likeStory(story);
     if (success) {
       this.notifyUser(`❤️ "${story.name}" ditambahkan ke favorit`);
@@ -413,6 +561,11 @@ class StoryOfflineManager {
   }
 
   async downloadForOffline(story) {
+    if (!this.initialized || !this.dbManager) {
+      console.error('StoryOfflineManager not initialized');
+      return false;
+    }
+
     const success = await this.dbManager.downloadStoryForOffline(story);
     if (success) {
       this.notifyUser(`📱 "${story.name}" tersedia offline`);
@@ -421,6 +574,11 @@ class StoryOfflineManager {
   }
 
   async downloadMultipleStories(stories, progressCallback) {
+    if (!this.initialized || !this.dbManager) {
+      console.error('StoryOfflineManager not initialized');
+      return 0;
+    }
+
     let downloaded = 0;
     const total = stories.length;
 
@@ -443,31 +601,44 @@ class StoryOfflineManager {
 
   // ====== USER PREFERENCES ======
   async setAutoSaveLiked(enabled) {
+    if (!this.dbManager) return false;
     return await this.dbManager.saveUserPreference('autoSaveLiked', enabled);
   }
 
   async getAutoSaveLiked() {
+    if (!this.dbManager) return false;
     return await this.dbManager.getUserPreference('autoSaveLiked', false);
   }
 
   async setOfflineMode(enabled) {
+    if (!this.dbManager) return false;
     return await this.dbManager.saveUserPreference('offlineMode', enabled);
   }
 
   async getOfflineMode() {
+    if (!this.dbManager) return false;
     return await this.dbManager.getUserPreference('offlineMode', false);
   }
 
   // ====== GETTERS ======
   async getAllUserStories() {
+    if (!this.dbManager) {
+      return { saved: [], liked: [], offline: [], total: 0 };
+    }
     return await this.dbManager.getAllUserStories();
   }
 
   async getStoryStatus(storyId) {
+    if (!this.dbManager) {
+      return { id: storyId, isSaved: false, isLiked: false, isOffline: false, hasAnyStatus: false };
+    }
     return await this.dbManager.getStoryStatus(storyId);
   }
 
   async getStorageInfo() {
+    if (!this.dbManager) {
+      return { counts: {}, sizes: {}, lastUpdated: {} };
+    }
     return await this.dbManager.getDetailedStorageInfo();
   }
 
@@ -475,7 +646,10 @@ class StoryOfflineManager {
   notifyUser(message) {
     console.log(`📢 ${message}`);
     
-    if ('Notification' in window && Notification.permission === 'granted') {
+    // Try different notification methods
+    if (window.PWAIntegration) {
+      window.PWAIntegration.showSuccess(message);
+    } else if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Dicoding Story', {
         body: message,
         icon: 'ios/72.png',
@@ -507,23 +681,84 @@ class StoryOfflineManager {
   }
 
   async clearAllUserData() {
+    if (!this.dbManager) return false;
     return await this.dbManager.clearUserData('all');
   }
 }
 
-// Global instances
-window.IndexDBManager = new IndexDBManager();
-window.StoryOfflineManager = new StoryOfflineManager();
+// FIXED: Initialize global instances properly
+console.log('📦 Creating IndexedDB managers...');
+
+// Create and export instances
+const indexDBManagerInstance = new IndexDBManager();
+const storyOfflineManagerInstance = new StoryOfflineManager();
+
+// Make them available globally 
+window.IndexDBManager = indexDBManagerInstance;
+window.StoryOfflineManager = storyOfflineManagerInstance;
 
 // Initialize when DOM loads
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    await window.IndexedDBManager.init();
-    await window.StoryOfflineManager.init();
+    console.log('🚀 Initializing enhanced offline storage managers...');
+    
+    await indexDBManagerInstance.init();
+    await storyOfflineManagerInstance.init();
+    
     console.log('✅ Enhanced offline storage managers initialized');
   } catch (error) {
     console.error('❌ Failed to initialize enhanced offline storage:', error);
   }
+  setTimeout(() => {
+    if (window.StoryOfflineManager) {
+      console.log('🔧 Adding method aliases...');
+      
+      // Ensure all required methods exist
+      const requiredMethods = {
+        'getOfflineStories': async function() {
+          return await this.dbManager?.getOfflineStories() || [];
+        },
+        'cacheStories': async function(stories) {
+          if (!stories || !Array.isArray(stories)) return false;
+          try {
+            for (const story of stories) {
+              await this.dbManager?.downloadStoryForOffline(story);
+            }
+            return true;
+          } catch (error) {
+            console.error('Cache stories error:', error);
+            return false;
+          }
+        },
+        'hasOfflineData': async function() {
+          const stories = await this.getOfflineStories();
+          return stories.length > 0;
+        },
+        'getOfflineInfo': async function() {
+          const stories = await this.getOfflineStories();
+          return {
+            count: stories.length,
+            size: JSON.stringify(stories).length,
+            lastCached: stories.length > 0 ? stories[0].downloadedAt : null
+          };
+        },
+        'clearOfflineStories': async function() {
+          return await this.dbManager?.clearUserData('offline') || false;
+        }
+      };
+
+      // Add missing methods
+      for (const [methodName, methodFunc] of Object.entries(requiredMethods)) {
+        if (!window.StoryOfflineManager[methodName]) {
+          window.StoryOfflineManager[methodName] = methodFunc.bind(window.StoryOfflineManager);
+          console.log(`✅ Added method: ${methodName}`);
+        }
+      }
+
+      console.log('🔧 Method check complete. Available methods:');
+      console.log(Object.getOwnPropertyNames(window.StoryOfflineManager));
+    }
+  }, 500);
 });
 
 export { IndexDBManager, StoryOfflineManager };

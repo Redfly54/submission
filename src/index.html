@@ -40,8 +40,8 @@
   <title>Dicoding Story SPA</title>
   
   <!-- Existing Stylesheets -->
-<link rel="stylesheet" href="./styles/styles.css" />
-<link rel="stylesheet" href="./styles/pwa-styles.css" />
+  <link rel="stylesheet" href="./styles/styles.css" />
+  <link rel="stylesheet" href="./styles/pwa-styles.css" />
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   
@@ -359,7 +359,7 @@
         }
 
         try {
-          const registration = await navigator.serviceWorker.register('./sw.js', {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
             scope: './'
           });
 
@@ -584,9 +584,34 @@
 
   <!-- Existing External Scripts -->
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="https://kit.fontawesome.com/REPLACE_WITH_YOUR_KIT.js" crossorigin="anonymous"></script>
 
-  <!-- Your Existing App Script -->
-<script type="module" src="./scripts/app.js"></script>
+  <!-- FIXED: Load IndexedDBManager first, then app.js -->
+  <script type="module" src="./scripts/utils/IndexDBManager.js"></script>
+  <script type="module" src="./scripts/app.js"></script>
+  <script>
+setTimeout(() => {
+  console.log('🧪 Testing StoryOfflineManager methods...');
+  
+  const manager = window.StoryOfflineManager;
+  if (manager) {
+    console.log('Methods available:', {
+      getOfflineStories: typeof manager.getOfflineStories,
+      cacheStories: typeof manager.cacheStories,
+      getAllUserStories: typeof manager.getAllUserStories,
+      hasOfflineData: typeof manager.hasOfflineData,
+      getOfflineInfo: typeof manager.getOfflineInfo
+    });
+    
+    // Test call
+    manager.getOfflineStories?.().then(stories => {
+      console.log('✅ getOfflineStories test successful:', stories.length, 'stories');
+    }).catch(error => {
+      console.error('❌ getOfflineStories test failed:', error);
+    });
+  } else {
+    console.error('❌ StoryOfflineManager not available');
+  }
+}, 3000);
+</script>
 </body>
 </html>

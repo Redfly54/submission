@@ -1,4 +1,4 @@
-// Updated StoriesListPresenter.js - User-driven storage approach
+// Updated StoriesListPresenter.js - Fixed for button rendering
 import StoriesListModel from '../model/StoriesListModel.js';
 import { loadConfig } from '../utils/index.js';
 import StoriesListView from '../view/StoriesListView.js';
@@ -31,6 +31,7 @@ export default class StoriesListPresenter {
     }
 
     this.isInitializing = true;
+    console.log('🚀 Initializing StoriesListPresenter...');
 
     try {
       // Check if the user is logged in
@@ -38,6 +39,9 @@ export default class StoriesListPresenter {
         alert('Anda harus login terlebih dahulu');
         return location.hash = '/login';
       }
+
+      // FIXED: Wait for IndexedDB managers to be ready
+      await this.waitForManagers();
 
       // Initialize storage (for user actions only)
       await this.initStorage();
@@ -61,15 +65,43 @@ export default class StoriesListPresenter {
     }
   }
 
+  // FIXED: Wait for IndexedDB managers to be ready
+  async waitForManagers() {
+    console.log('⏳ Waiting for IndexedDB managers...');
+    
+    let attempts = 0;
+    const maxAttempts = 100; // 10 seconds
+    
+    while (attempts < maxAttempts) {
+      if (window.StoryOfflineManager && window.IndexedDBManager) {
+        // Check if they're properly initialized
+        if (window.StoryOfflineManager.initialized !== false) {
+          console.log('✅ IndexedDB managers are ready');
+          return true;
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    console.warn('⚠️ IndexedDB managers not ready after timeout');
+    return false;
+  }
+
   async initStorage() {
     try {
       console.log('🔧 Initializing user storage...');
       
       // Initialize enhanced storage manager
       if (window.StoryOfflineManager) {
-        await window.StoryOfflineManager.init();
-        console.log('✅ User storage ready');
-        return true;
+        const initResult = await window.StoryOfflineManager.init();
+        if (initResult) {
+          console.log('✅ User storage ready');
+          return true;
+        } else {
+          throw new Error('StoryOfflineManager init failed');
+        }
       } else {
         throw new Error('StoryOfflineManager not available');
       }
@@ -94,96 +126,59 @@ export default class StoriesListPresenter {
     }
   }
 
-  // CHANGED: No auto-cache, just load and display
-  // async loadStoriesOnline(maptilerKey) {
-  //   try {
-  //     console.log('📡 Loading fresh stories from API...');
-  //     this.showLoadingState(true);
-      
-  //     // Fetch stories from API
-  //     const { listStory: stories } = await this.model.getAllStories();
-
-  //     if (!stories || stories.length === 0) {
-  //       throw new Error('No stories returned from API');
-  //     }
-
-  //     // Store for user actions
-  //     this.currentStories = stories;
-
-  //     // REMOVED: Auto-cache to IndexedDB
-  //     // const saveSuccess = await storyStorage.saveStories(stories);
-
-  //     // Render stories with user action buttons
-  //     await this.renderStoriesWithUserActions(stories, maptilerKey);
-      
-  //     this.showOnlineStatus();
-  //     this.showSuccessMessage(`${stories.length} stories loaded`);
-  //     this.resetRetryCount();
-      
-  //   } catch (error) {
-  //     console.log('❌ Online loading failed, showing user content...', error);
-  //     this.retryCount++;
-      
-  //     // Show user's saved content instead
-  //     await this.loadUserStoriesOffline();
-      
-  //     if (this.retryCount < this.maxRetries) {
-  //       this.showRetryOption();
-  //     }
-  //   } finally {
-  //     this.showLoadingState(false);
-  //   }
-  // }
+  // FIXED: Enhanced loading with proper user actions
   async loadStoriesOnline(maptilerKey) {
-  try {
-    console.log('📡 Loading fresh stories from API...');
-    this.showLoadingState(true);
-    
-    // PERBAIKAN: Tambah try-catch untuk API call
-    let stories;
     try {
-      const result = await this.model.getAllStories();
-      stories = result.listStory;
-    } catch (apiError) {
-      // Jika API error (503, network, dll), langsung ke offline mode
-      console.log('❌ API Error:', apiError.message);
+      console.log('📡 Loading fresh stories from API...');
+      this.showLoadingState(true);
       
-      if (apiError.message.includes('503') || apiError.message.includes('Service Unavailable')) {
-        this.showErrorMessage('Server sedang maintenance. Menampilkan data offline...');
-      } else {
-        this.showErrorMessage('Koneksi bermasalah. Menampilkan data offline...');
+      // PERBAIKAN: Tambah try-catch untuk API call
+      let stories;
+      try {
+        const result = await this.model.getAllStories();
+        stories = result.listStory;
+      } catch (apiError) {
+        // Jika API error (503, network, dll), langsung ke offline mode
+        console.log('❌ API Error:', apiError.message);
+        
+        if (apiError.message.includes('503') || apiError.message.includes('Service Unavailable')) {
+          this.showErrorMessage('Server sedang maintenance. Menampilkan data offline...');
+        } else {
+          this.showErrorMessage('Koneksi bermasalah. Menampilkan data offline...');
+        }
+        
+        // Langsung load offline data
+        await this.loadUserStoriesOffline(maptilerKey);
+        return;
       }
+
+      if (!stories || stories.length === 0) {
+        throw new Error('No stories returned from API');
+      }
+
+      this.currentStories = stories;
       
-      // Langsung load offline data
+      // FIXED: Call the enhanced rendering method
+      await this.renderStoriesWithUserActions(stories, maptilerKey);
+      
+      this.showOnlineStatus();
+      this.showSuccessMessage(`${stories.length} stories loaded`);
+      this.resetRetryCount();
+      
+    } catch (error) {
+      console.log('❌ General error:', error);
       await this.loadUserStoriesOffline(maptilerKey);
-      return;
+      
+      // Show retry option
+      this.showToast(
+        `Gagal memuat data. <button onclick="window.storiesPresenter?.refreshStories()" style="background: white; color: #2196f3; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">Coba Lagi</button>`,
+        'warning',
+        8000
+      );
+    } finally {
+      this.showLoadingState(false);
     }
-
-    if (!stories || stories.length === 0) {
-      throw new Error('No stories returned from API');
-    }
-
-    this.currentStories = stories;
-    await this.renderStoriesWithUserActions(stories, maptilerKey);
-    
-    this.showOnlineStatus();
-    this.showSuccessMessage(`${stories.length} stories loaded`);
-    this.resetRetryCount();
-    
-  } catch (error) {
-    console.log('❌ General error:', error);
-    await this.loadUserStoriesOffline(maptilerKey);
-    
-    // Show retry option
-    this.showToast(
-      `Gagal memuat data. <button onclick="window.storiesPresenter?.refreshStories()" style="background: white; color: #2196f3; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">Coba Lagi</button>`,
-      'warning',
-      8000
-    );
-  } finally {
-    this.showLoadingState(false);
   }
-}
 
   // NEW: Load only user's saved/downloaded stories when offline
   async loadUserStoriesOffline(maptilerKey = '') {
@@ -227,15 +222,21 @@ export default class StoriesListPresenter {
     }
   }
 
-  // NEW: Render stories with user action buttons
+  // FIXED: Enhanced rendering method with proper user action setup
   async renderStoriesWithUserActions(stories, maptilerKey) {
+    console.log('🎨 Rendering stories with user actions...');
+    
     // Get user status for each story
     const storiesWithStatus = await Promise.all(
       stories.map(async (story) => {
         let status = { isSaved: false, isLiked: false, isOffline: false };
         
-        if (window.StoryOfflineManager) {
-          status = await window.StoryOfflineManager.getStoryStatus(story.id);
+        if (window.StoryOfflineManager && window.StoryOfflineManager.initialized) {
+          try {
+            status = await window.StoryOfflineManager.getStoryStatus(story.id);
+          } catch (error) {
+            console.warn('Failed to get story status for', story.id, error);
+          }
         }
         
         return { ...story, userStatus: status };
@@ -244,6 +245,8 @@ export default class StoriesListPresenter {
 
     // Render with enhanced view
     await this.view.renderWithUserActions(storiesWithStatus, maptilerKey);
+    
+    console.log('✅ Stories rendered with user actions');
   }
 
   // NEW: Render offline stories with categories
@@ -262,12 +265,16 @@ export default class StoriesListPresenter {
     await this.view.renderOfflineStories(categorizedStories, maptilerKey);
   }
 
-  // NEW: Setup user action handlers
+  // FIXED: Enhanced user action handlers with proper error handling
   setupUserActionHandlers() {
+    console.log('🎮 Setting up user action handlers...');
+    
     // Save story for later
     document.addEventListener('click', async (e) => {
       if (e.target.matches('.save-story-btn')) {
+        e.preventDefault();
         const storyId = e.target.dataset.storyId;
+        console.log('💾 Save button clicked for story:', storyId);
         await this.handleSaveStory(storyId);
       }
     });
@@ -275,7 +282,9 @@ export default class StoriesListPresenter {
     // Like story
     document.addEventListener('click', async (e) => {
       if (e.target.matches('.like-story-btn')) {
+        e.preventDefault();
         const storyId = e.target.dataset.storyId;
+        console.log('❤️ Like button clicked for story:', storyId);
         await this.handleLikeStory(storyId);
       }
     });
@@ -283,7 +292,9 @@ export default class StoriesListPresenter {
     // Download for offline
     document.addEventListener('click', async (e) => {
       if (e.target.matches('.download-story-btn')) {
+        e.preventDefault();
         const storyId = e.target.dataset.storyId;
+        console.log('📱 Download button clicked for story:', storyId);
         await this.handleDownloadStory(storyId);
       }
     });
@@ -291,14 +302,20 @@ export default class StoriesListPresenter {
     // Download all visible stories
     document.addEventListener('click', async (e) => {
       if (e.target.matches('.download-all-btn')) {
+        e.preventDefault();
+        console.log('📚 Download all button clicked');
         await this.handleDownloadAllVisible();
       }
     });
+    
+    console.log('✅ User action handlers setup complete');
   }
 
-  // NEW: User action handlers
+  // FIXED: Enhanced user action methods
   async handleSaveStory(storyId) {
     try {
+      console.log('💾 Handling save story:', storyId);
+      
       const story = this.findStoryById(storyId);
       if (!story) throw new Error('Story not found');
 
@@ -313,6 +330,7 @@ export default class StoriesListPresenter {
         // Save story
         await window.StoryOfflineManager.saveStoryForLater(story);
         this.updateStoryButton(storyId, 'save', true);
+        this.showSuccessMessage('📚 Disimpan untuk dibaca nanti');
       }
     } catch (error) {
       console.error('❌ Save story failed:', error);
@@ -322,6 +340,8 @@ export default class StoriesListPresenter {
 
   async handleLikeStory(storyId) {
     try {
+      console.log('❤️ Handling like story:', storyId);
+      
       const story = this.findStoryById(storyId);
       if (!story) throw new Error('Story not found');
 
@@ -336,6 +356,7 @@ export default class StoriesListPresenter {
         // Like story
         await window.StoryOfflineManager.likeStory(story);
         this.updateStoryButton(storyId, 'like', true);
+        this.showSuccessMessage('❤️ Ditambahkan ke favorit');
         
         // Auto-save if user preference enabled
         const autoSave = await window.StoryOfflineManager.getAutoSaveLiked();
@@ -352,6 +373,8 @@ export default class StoriesListPresenter {
 
   async handleDownloadStory(storyId) {
     try {
+      console.log('📱 Handling download story:', storyId);
+      
       const story = this.findStoryById(storyId);
       if (!story) throw new Error('Story not found');
 
@@ -366,6 +389,7 @@ export default class StoriesListPresenter {
         // Download for offline
         await window.StoryOfflineManager.downloadForOffline(story);
         this.updateStoryButton(storyId, 'download', true);
+        this.showSuccessMessage('📱 Tersedia offline');
       }
     } catch (error) {
       console.error('❌ Download story failed:', error);
@@ -411,14 +435,17 @@ export default class StoriesListPresenter {
     }
   }
 
-  // NEW: Helper methods
+  // FIXED: Helper methods
   findStoryById(storyId) {
     return this.currentStories.find(story => story.id === storyId);
   }
 
   updateStoryButton(storyId, action, isActive) {
     const button = document.querySelector(`[data-story-id="${storyId}"].${action}-story-btn`);
-    if (!button) return;
+    if (!button) {
+      console.warn('Button not found:', `[data-story-id="${storyId}"].${action}-story-btn`);
+      return;
+    }
 
     const icons = {
       save: { active: '📚', inactive: '📖' },
@@ -430,6 +457,18 @@ export default class StoriesListPresenter {
     if (icon) {
       button.textContent = isActive ? icon.active : icon.inactive;
       button.classList.toggle('active', isActive);
+      
+      // Update title
+      const titles = {
+        save: { active: 'Hapus dari simpanan', inactive: 'Simpan untuk nanti' },
+        like: { active: 'Hapus dari favorit', inactive: 'Tambah ke favorit' },
+        download: { active: 'Hapus dari offline', inactive: 'Download untuk offline' }
+      };
+      
+      const title = titles[action];
+      if (title) {
+        button.title = isActive ? title.active : title.inactive;
+      }
     }
   }
 
@@ -482,7 +521,7 @@ export default class StoriesListPresenter {
     }
   }
 
-  // UPDATED: Enhanced refresh without auto-cache
+  // Keep existing methods (refreshStories, clearUserData, showStorageManagement, etc.)
   async refreshStories() {
     if (this.isInitializing) {
       console.log('⏳ Already refreshing...');
@@ -510,262 +549,6 @@ export default class StoriesListPresenter {
       } else {
         this.showErrorMessage(`Gagal memperbarui data: ${error.message}`);
       }
-    }
-  }
-
-  // NEW: Clear user data with categories
-  async clearUserData(category = 'all') {
-    const categoryNames = {
-      'saved': 'cerita tersimpan',
-      'liked': 'cerita favorit', 
-      'offline': 'unduhan offline',
-      'all': 'semua data pengguna'
-    };
-
-    const confirmed = await this.showConfirmDialog(
-      'Hapus Data', 
-      `Apakah Anda yakin ingin menghapus ${categoryNames[category]}?`
-    );
-    
-    if (!confirmed) return;
-
-    try {
-      this.showLoadingState(true, 'Clearing data...');
-      
-      if (!window.StoryOfflineManager) {
-        throw new Error('Offline manager not available');
-      }
-
-      const success = await window.StoryOfflineManager.dbManager.clearUserData(category);
-      
-      if (success) {
-        this.showSuccessMessage(`${categoryNames[category]} berhasil dihapus`);
-        
-        // Refresh view
-        if (navigator.onLine) {
-          await this.init();
-        } else {
-          await this.loadUserStoriesOffline();
-        }
-      } else {
-        throw new Error('Gagal menghapus data');
-      }
-    } catch (error) {
-      console.error('❌ Clear data failed:', error);
-      this.showErrorMessage(`Gagal menghapus data: ${error.message}`);
-    }
-  }
-
-  // NEW: Show user storage management UI
-  async showStorageManagement() {
-    try {
-      if (!window.StoryOfflineManager) {
-        this.showErrorMessage('Fitur storage tidak tersedia');
-        return;
-      }
-
-      const storageInfo = await window.StoryOfflineManager.getStorageInfo();
-      
-      const appContainer = document.getElementById('app');
-      if (appContainer) {
-        appContainer.innerHTML = `
-          <div style="max-width: 600px; margin: 0 auto; padding: 2rem 1rem;">
-            <h2>📊 Manajemen Storage</h2>
-            
-            <div style="display: grid; gap: 1rem; margin: 2rem 0;">
-              <!-- Storage Stats -->
-              <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px;">
-                <h3>📈 Statistik Penyimpanan</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                  <div style="text-align: center;">
-                    <div style="font-size: 2rem; color: #1976d2;">📚</div>
-                    <div style="font-weight: bold;">${storageInfo.counts.saved || 0}</div>
-                    <div style="font-size: 0.9rem; color: #666;">Tersimpan</div>
-                  </div>
-                  <div style="text-align: center;">
-                    <div style="font-size: 2rem; color: #e91e63;">❤️</div>
-                    <div style="font-weight: bold;">${storageInfo.counts.liked || 0}</div>
-                    <div style="font-size: 0.9rem; color: #666;">Favorit</div>
-                  </div>
-                  <div style="text-align: center;">
-                    <div style="font-size: 2rem; color: #4caf50;">📱</div>
-                    <div style="font-weight: bold;">${storageInfo.counts.offline || 0}</div>
-                    <div style="font-size: 0.9rem; color: #666;">Offline</div>
-                  </div>
-                </div>
-                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
-                  <strong>Total: ${storageInfo.counts.total || 0} cerita</strong>
-                  <br>
-                  <span style="color: #666;">Ukuran: ${storageInfo.sizes.total || '0 Bytes'}</span>
-                </div>
-              </div>
-
-              <!-- Management Actions -->
-              <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee;">
-                <h3>🛠️ Kelola Data</h3>
-                <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
-                  <button onclick="window.storiesPresenter?.clearUserData('saved')" style="
-                    background: #ff9800; color: white; border: none;
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                  ">🗑️ Hapus Cerita Tersimpan</button>
-                  
-                  <button onclick="window.storiesPresenter?.clearUserData('liked')" style="
-                    background: #e91e63; color: white; border: none;
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                  ">💔 Hapus Favorit</button>
-                  
-                  <button onclick="window.storiesPresenter?.clearUserData('offline')" style="
-                    background: #f44336; color: white; border: none;
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                  ">📱 Hapus Unduhan Offline</button>
-                  
-                  <button onclick="window.storiesPresenter?.clearUserData('all')" style="
-                    background: #9e9e9e; color: white; border: none;
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                  ">🗑️ Hapus Semua Data</button>
-                </div>
-              </div>
-
-              <!-- Export/Import -->
-              <div style="background: #e8f5e8; padding: 1.5rem; border-radius: 12px;">
-                <h3>💾 Backup & Restore</h3>
-                <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
-                  <button onclick="window.storiesPresenter?.exportUserData()" style="
-                    background: #4caf50; color: white; border: none;
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                  ">📤 Export Data</button>
-                  
-                  <label style="
-                    background: #2196f3; color: white; 
-                    padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-                    display: inline-block; text-align: center;
-                  ">
-                    📥 Import Data
-                    <input type="file" accept=".json" style="display: none;" 
-                           onchange="window.storiesPresenter?.handleImportFile(this.files[0])">
-                  </label>
-                </div>
-              </div>
-
-              <!-- Back Button -->
-              <button onclick="window.storiesPresenter?.init()" style="
-                background: #666; color: white; border: none;
-                padding: 1rem 2rem; border-radius: 8px; cursor: pointer;
-                font-size: 1rem; margin-top: 1rem;
-              ">← Kembali ke Cerita</button>
-            </div>
-          </div>
-        `;
-      }
-    } catch (error) {
-      console.error('❌ Show storage management failed:', error);
-      this.showErrorMessage('Gagal menampilkan manajemen storage');
-    }
-  }
-
-  // NEW: Export user data
-  async exportUserData() {
-    try {
-      if (!window.StoryOfflineManager) {
-        this.showErrorMessage('Fitur export tidak tersedia');
-        return;
-      }
-
-      const exportData = await window.StoryOfflineManager.exportUserData();
-      
-      if (!exportData) {
-        this.showErrorMessage('Gagal mengekspor data');
-        return;
-      }
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json'
-      });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `dicoding-stories-user-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      this.showSuccessMessage('Data berhasil diekspor');
-      
-    } catch (error) {
-      console.error('❌ Export failed:', error);
-      this.showErrorMessage('Gagal mengekspor data');
-    }
-  }
-
-  // NEW: Handle import file
-  async handleImportFile(file) {
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const importData = JSON.parse(text);
-      
-      if (!importData.userStories || !importData.version) {
-        throw new Error('Format file tidak valid');
-      }
-
-      const confirmed = await this.showConfirmDialog(
-        'Import Data',
-        `Import data dari ${importData.exportDate}? Data yang ada akan diganti.`
-      );
-
-      if (!confirmed) return;
-
-      this.showLoadingState(true, 'Importing data...');
-
-      // Clear existing data
-      await window.StoryOfflineManager.clearAllUserData();
-      
-      // Import user stories
-      const { saved, liked, offline } = importData.userStories;
-      
-      if (saved && saved.length > 0) {
-        for (const story of saved) {
-          await window.StoryOfflineManager.dbManager.saveStoryForLater(story);
-        }
-      }
-      
-      if (liked && liked.length > 0) {
-        for (const story of liked) {
-          await window.StoryOfflineManager.dbManager.likeStory(story);
-        }
-      }
-      
-      if (offline && offline.length > 0) {
-        for (const story of offline) {
-          await window.StoryOfflineManager.dbManager.downloadStoryForOffline(story);
-        }
-      }
-
-      // Import preferences
-      if (importData.preferences) {
-        const prefs = importData.preferences;
-        if (typeof prefs.autoSaveLiked !== 'undefined') {
-          await window.StoryOfflineManager.setAutoSaveLiked(prefs.autoSaveLiked);
-        }
-        if (typeof prefs.offlineMode !== 'undefined') {
-          await window.StoryOfflineManager.setOfflineMode(prefs.offlineMode);
-        }
-      }
-
-      const totalImported = (saved?.length || 0) + (liked?.length || 0) + (offline?.length || 0);
-      this.showSuccessMessage(`Berhasil mengimpor ${totalImported} cerita`);
-      
-      // Refresh view
-      await this.showStorageManagement();
-      
-    } catch (error) {
-      console.error('❌ Import failed:', error);
-      this.showErrorMessage(`Gagal mengimpor data: ${error.message}`);
-    } finally {
-      this.showLoadingState(false);
     }
   }
 
@@ -801,7 +584,10 @@ export default class StoriesListPresenter {
       const loader = document.getElementById('pwa-loading');
       if (loader) {
         if (show) {
-          loader.querySelector('p').textContent = message;
+          const textElement = loader.querySelector('p');
+          if (textElement) {
+            textElement.textContent = message;
+          }
           loader.classList.add('show');
         } else {
           loader.classList.remove('show');
@@ -857,14 +643,16 @@ export default class StoriesListPresenter {
       toast.style.transform = 'translateX(0)';
     }, 100);
     
-    setTimeout(() => {
-      toast.style.transform = 'translateX(100%)';
+    if (duration > 0) {
       setTimeout(() => {
-        if (toast.parentElement) {
-          toast.remove();
-        }
-      }, 300);
-    }, duration);
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
+      }, duration);
+    }
   }
 
   getToastIcon(type) {

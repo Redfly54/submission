@@ -63,19 +63,28 @@ import LoginPresenter from './presenter/LoginPresenter.js';
 import RegisterPresenter from './presenter/RegisterPresenter.js';
 import StoriesListPresenter from './presenter/StoriesListPresenter.js';
 import StoryDetailPresenter from './presenter/StoryDetailPresenter.js';
+// FIXED: Import dengan nama yang benar
 import { IndexDBManager } from './utils/IndexDBManager.js';
 
-
-const dbManager = new IndexDBManager();
+// FIXED: Initialize IndexedDB properly
+let dbManager;
 
 // Initialize navigation on load
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 DOM loaded, initializing navigation...');
+  console.log('🚀 DOM loaded, initializing...');
   
-  // Initialize IndexedDB
+  // FIXED: Initialize IndexedDB dengan error handling
   try {
+    dbManager = new IndexDBManager();
     await dbManager.init();
     console.log('✅ IndexedDB initialized');
+    
+    // FIXED: Initialize global managers setelah DOM ready
+    window.IndexedDBManager = dbManager;
+    if (window.StoryOfflineManager) {
+      await window.StoryOfflineManager.init();
+      console.log('✅ StoryOfflineManager initialized');
+    }
   } catch (error) {
     console.error('❌ IndexedDB init failed:', error);
   }
@@ -287,9 +296,33 @@ window.updateNavigation = function() {
   PWANavigationHelper.updateNavigation();
 };
 
-// Initialize navigation on load
-document.addEventListener('DOMContentLoaded', () => {
+// FIXED: Wait for both DOM and managers to be ready
+let managersReady = false;
+
+async function waitForManagers() {
+  let attempts = 0;
+  const maxAttempts = 50; // 5 seconds
+  
+  while (!managersReady && attempts < maxAttempts) {
+    if (window.StoryOfflineManager && window.IndexedDBManager) {
+      managersReady = true;
+      console.log('✅ All managers ready');
+      break;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
+  }
+  
+  if (!managersReady) {
+    console.warn('⚠️ Managers not ready after timeout');
+  }
+}
+
+// Initialize navigation on load and hash changes
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 DOM loaded, initializing navigation...');
+  await waitForManagers();
   PWANavigationHelper.updateNavigation();
 });
 
